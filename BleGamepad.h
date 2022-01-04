@@ -182,15 +182,15 @@
 class BleGamepad {
 private:
   uint8_t  _controllerType;
-  uint8_t _buttons[16];	//8 bytes x 16 --> 128 bytes 
+  uint8_t _buttons[16];	//8 bytes x 16 --> 128 bits == 128 Buttons
   int16_t _x;
   int16_t _y;
   int16_t _z;
   int16_t _rZ;
   int16_t _rX;
   int16_t _rY;
-  int16_t _slider1;
-  int16_t _slider2;
+  int16_t _sliders[8];
+  uint8_t _sliderCount;
   int16_t _rudder;
   int16_t _throttle;
   int16_t _accelerator;
@@ -209,8 +209,6 @@ private:
   bool _includeRxAxis;
   bool _includeRyAxis;
   bool _includeRzAxis;
-  bool _includeSlider1;
-  bool _includeSlider2;
   bool _includeRudder;
   bool _includeThrottle;
   bool _includeAccelerator;
@@ -227,10 +225,10 @@ private:
 
 public:
   BleGamepad(std::string deviceName = "ESP32 BLE Gamepad", std::string deviceManufacturer = "Espressif", uint8_t batteryLevel = 100);
-  void begin(uint16_t buttonCount = 16, uint8_t hatSwitchCount = 1, bool includeXAxis = true, bool includeYAxis = true, bool includeZAxis = true, bool includeRzAxis = true, bool includeRxAxis = true, bool includeRyAxis = true, bool includeSlider1 = true, bool includeSlider2 = true, bool includeRudder = false, bool includeThrottle = false, bool includeAccelerator = false, bool includeBrake = false, bool includeSteering = false);
+  void begin(uint16_t buttonCount = 16, uint8_t hatSwitchCount = 1, bool includeXAxis = true, bool includeYAxis = true, bool includeZAxis = true, bool includeRzAxis = true, bool includeRxAxis = true, bool includeRyAxis = true, uint8_t sliderCount = 0, bool includeRudder = false, bool includeThrottle = false, bool includeAccelerator = false, bool includeBrake = false, bool includeSteering = false);
   void end(void);
   void setControllerType(uint8_t controllerType = CONTROLLER_TYPE_GAMEPAD);
-  void setAxes(int16_t x = 0, int16_t y = 0, int16_t z = 0, int16_t rZ = 0, int16_t rX = 0, int16_t rY = 0, int16_t slider1 = 0, int16_t slider2 = 0, signed char hat1 = 0, signed char hat2 = 0, signed char hat3 = 0, signed char hat4 = 0);
+  void setAxes(int16_t x = 0, int16_t y = 0, int16_t z = 0, int16_t rZ = 0, int16_t rX = 0, int16_t rY = 0, signed char hat1 = 0, signed char hat2 = 0, signed char hat3 = 0, signed char hat4 = 0);
   void press(uint8_t b = BUTTON_1);   // press BUTTON_1 by default
   void release(uint8_t b = BUTTON_1); // release BUTTON_1 by default
   void setLeftThumb(int16_t x = 0, int16_t y = 0);
@@ -250,10 +248,7 @@ public:
   void setRZ(int16_t rZ = 0);
   void setRX(int16_t rX = 0);
   void setRY(int16_t rY = 0);
-  void setSliders(int16_t slider1 = 0, int16_t slider2 = 0);
-  void setSlider(int16_t slider = 0);
-  void setSlider1(int16_t slider1 = 0);
-  void setSlider2(int16_t slider2 = 0);
+  void setSlider(uint8_t index, int16_t slider = 0);
   void setRudder(int16_t rudder = 0);
   void setThrottle(int16_t throttle = 0);
   void setAccelerator(int16_t accelerator = 0);

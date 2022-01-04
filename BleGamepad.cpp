@@ -33,8 +33,7 @@ BleGamepad::BleGamepad(std::string deviceName, std::string deviceManufacturer, u
   _rZ(0),
   _rX(0),
   _rY(0),
-  _slider1(0),
-  _slider2(0),
+  _sliderCount(0),
   _rudder(0),
   _throttle(0),
   _accelerator(0),
@@ -53,8 +52,6 @@ BleGamepad::BleGamepad(std::string deviceName, std::string deviceManufacturer, u
   _includeRxAxis(true),
   _includeRyAxis(true),
   _includeRzAxis(true),
-  _includeSlider1(true),
-  _includeSlider2(true),
   _includeRudder(false),
   _includeThrottle(false),
   _includeAccelerator(false),
@@ -78,7 +75,11 @@ void BleGamepad::setControllerType(uint8_t controllerType){
 }
   
   
-void BleGamepad::begin(uint16_t buttonCount, uint8_t hatSwitchCount, bool includeXAxis, bool includeYAxis, bool includeZAxis, bool includeRzAxis, bool includeRxAxis, bool includeRyAxis, bool includeSlider1, bool includeSlider2, bool includeRudder, bool includeThrottle, bool includeAccelerator, bool includeBrake, bool includeSteering)
+void BleGamepad::begin(uint16_t buttonCount, uint8_t hatSwitchCount, 
+        bool includeXAxis, bool includeYAxis, bool includeZAxis, 
+        bool includeRzAxis, bool includeRxAxis, bool includeRyAxis, 
+        uint8_t sliderCount,
+        bool includeRudder, bool includeThrottle, bool includeAccelerator, bool includeBrake, bool includeSteering)
 {
 	_buttonCount = buttonCount;
 	_hatSwitchCount = hatSwitchCount;
@@ -89,8 +90,7 @@ void BleGamepad::begin(uint16_t buttonCount, uint8_t hatSwitchCount, bool includ
 	_includeRzAxis = includeRzAxis;
 	_includeRxAxis = includeRxAxis;
 	_includeRyAxis = includeRyAxis;
-	_includeSlider1 = includeSlider1;
-	_includeSlider2 = includeSlider2;
+	_sliderCount = sliderCount;
 	
 	_includeRudder = includeRudder;
 	_includeThrottle = includeThrottle;
@@ -105,8 +105,7 @@ void BleGamepad::begin(uint16_t buttonCount, uint8_t hatSwitchCount, bool includ
 	if (_includeRzAxis){ axisCount++; }
 	if (_includeRxAxis){ axisCount++; }
 	if (_includeRyAxis){ axisCount++; }
-	if (_includeSlider1){ axisCount++; }
-	if (_includeSlider2){ axisCount++; }
+	axisCount += sliderCount;
 	
 	uint8_t simulationCount = 0;
 	if (_includeRudder){ simulationCount++; }
@@ -271,13 +270,7 @@ void BleGamepad::begin(uint16_t buttonCount, uint8_t hatSwitchCount, bool includ
 		}
 		
 		
-		if (_includeSlider1 == true) {
-			// USAGE (Slider)
-			tempHidReportDescriptor[hidReportDescriptorSize++] = 0x09;
-			tempHidReportDescriptor[hidReportDescriptorSize++] = 0x36;
-		}
-		
-		if (_includeSlider2 == true) {
+		for(uint8_t i = 0; i<_sliderCount; i++) {
 			// USAGE (Slider)
 			tempHidReportDescriptor[hidReportDescriptorSize++] = 0x09;
 			tempHidReportDescriptor[hidReportDescriptorSize++] = 0x36;
@@ -422,7 +415,7 @@ void BleGamepad::end(void)
 {
 }
 
-void BleGamepad::setAxes(int16_t x, int16_t y, int16_t z, int16_t rZ, int16_t rX, int16_t rY, int16_t slider1, int16_t slider2, signed char hat1, signed char hat2, signed char hat3, signed char hat4)
+void BleGamepad::setAxes(int16_t x, int16_t y, int16_t z, int16_t rZ, int16_t rX, int16_t rY, signed char hat1, signed char hat2, signed char hat3, signed char hat4)
 {
 	if(x == -32768) { x = -32767; }
 	if(y == -32768) { y = -32767; }
@@ -430,8 +423,6 @@ void BleGamepad::setAxes(int16_t x, int16_t y, int16_t z, int16_t rZ, int16_t rX
 	if(rZ == -32768) { rZ = -32767; }
 	if(rX == -32768) { rX = -32767; }
 	if(rY == -32768) { rY = -32767; }
-	if(slider1 == -32768) { slider1 = -32767; }
-	if(slider2 == -32768) { slider2 = -32767; }
 
 	_x = x;
 	_y = y;
@@ -439,8 +430,6 @@ void BleGamepad::setAxes(int16_t x, int16_t y, int16_t z, int16_t rZ, int16_t rX
 	_rZ = rZ;
 	_rX = rX;
 	_rY = rY;
-	_slider1 = slider1;
-	_slider2 = slider2;
 	_hat1 = hat1;
 	_hat2 = hat2;
 	_hat3 = hat3;
@@ -476,17 +465,6 @@ void BleGamepad::setHats(signed char hat1, signed char hat2, signed char hat3, s
 	if(_autoReport){ sendReport(); }
 }
 
-void BleGamepad::setSliders(int16_t slider1, int16_t slider2)
-{	
-  if(slider1 == -32768) { slider1 = -32767; }
-  if(slider2 == -32768) { slider2 = -32767; }
-  
-  _slider1 = slider1;
-  _slider2 = slider2;
-
-  if(_autoReport){ sendReport(); }
-}
-
 void BleGamepad::sendReport(void)
 {
 	if (this->isConnected())
@@ -494,6 +472,7 @@ void BleGamepad::sendReport(void)
 		uint8_t currentReportIndex = 0;
 		
 		uint8_t m[reportSize];
+		uint8_t i;
 		
 		memset(&m,0,sizeof(m));
 		memcpy(&m, &_buttons, sizeof(_buttons));
@@ -507,8 +486,10 @@ void BleGamepad::sendReport(void)
 		if(_includeRxAxis){ m[currentReportIndex++] = _rX; 	m[currentReportIndex++] = (_rX >> 8); }
 		if(_includeRyAxis){ m[currentReportIndex++] = _rY; 	m[currentReportIndex++] = (_rY >> 8); }
 		
-		if(_includeSlider1){ m[currentReportIndex++] = _slider1;	m[currentReportIndex++] = (_slider1 >> 8); }
-		if(_includeSlider2){ m[currentReportIndex++] = _slider2;	m[currentReportIndex++] = (_slider2 >> 8); }
+		for(i=0; i< _sliderCount; i++) {
+			m[currentReportIndex++] = _sliders[i];
+			m[currentReportIndex++] = (_sliders[i] >> 8);
+		}
   
 		if(_includeRudder){ m[currentReportIndex++] = _rudder;	m[currentReportIndex++] = (_rudder >> 8); }
 		if(_includeThrottle){ m[currentReportIndex++] = _throttle;	m[currentReportIndex++] = (_throttle >> 8); }
@@ -709,29 +690,11 @@ void BleGamepad::setRY(int16_t rY)
 	if(_autoReport){ sendReport(); }
 }
 
-void BleGamepad::setSlider(int16_t slider)
+void BleGamepad::setSlider(uint8_t index, int16_t value)
 {
-	if(slider == -32768) { slider = -32767; }
+	if(value == -32768) { value = -32767; }
 	
-	_slider1 = slider;
-	
-	if(_autoReport){ sendReport(); }
-}
-
-void BleGamepad::setSlider1(int16_t slider1)
-{
-	if(slider1 == -32768) { slider1 = -32767; }
-	
-	_slider1 = slider1;
-	
-	if(_autoReport){ sendReport(); }
-}
-
-void BleGamepad::setSlider2(int16_t slider2)
-{
-	if(slider2 == -32768) { slider2 = -32767; }
-	
-	_slider2 = slider2;
+	_sliders[index] = value;
 	
 	if(_autoReport){ sendReport(); }
 }
