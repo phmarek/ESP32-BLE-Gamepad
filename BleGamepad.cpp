@@ -18,7 +18,7 @@
   static const char* LOG_TAG = "BLEGamepad";
 #endif
 
-uint8_t tempHidReportDescriptor[150];
+uint8_t tempHidReportDescriptor[250];
 int hidReportDescriptorSize = 0;
 uint8_t _hidReportId = 3;
 uint8_t reportSize = 0;
@@ -57,6 +57,13 @@ BleGamepad::BleGamepad(std::string deviceName, std::string deviceManufacturer, u
   _includeAccelerator(false),
   _includeBrake(false),
   _includeSteering(false),
+  _includeGyro(false),
+  _gZ(0),
+  _gX(0),
+  _gY(0),
+  _aZ(0),
+  _aX(0),
+  _aY(0),
   hid(0)
 {
   this->resetButtons();
@@ -79,6 +86,7 @@ void BleGamepad::begin(uint16_t buttonCount, uint8_t hatSwitchCount,
         bool includeXAxis, bool includeYAxis, bool includeZAxis, 
         bool includeRzAxis, bool includeRxAxis, bool includeRyAxis, 
         uint8_t sliderCount,
+        bool includeGyro,
         bool includeRudder, bool includeThrottle, bool includeAccelerator, bool includeBrake, bool includeSteering)
 {
 	_buttonCount = buttonCount;
@@ -91,7 +99,8 @@ void BleGamepad::begin(uint16_t buttonCount, uint8_t hatSwitchCount,
 	_includeRxAxis = includeRxAxis;
 	_includeRyAxis = includeRyAxis;
 	_sliderCount = sliderCount;
-	
+        _includeGyro = includeGyro;
+
 	_includeRudder = includeRudder;
 	_includeThrottle = includeThrottle;
 	_includeAccelerator = includeAccelerator;
@@ -123,7 +132,8 @@ void BleGamepad::begin(uint16_t buttonCount, uint8_t hatSwitchCount,
 	numOfButtonBytes = _buttonCount / 8;
 	if( buttonPaddingBits > 0){numOfButtonBytes++;}
 	
-	reportSize = numOfButtonBytes + numOfAxisBytes + numOfSimulationBytes + _hatSwitchCount;
+	reportSize = numOfButtonBytes + numOfAxisBytes + numOfSimulationBytes + _hatSwitchCount
+            + (includeGyro ? 6*2 : 0);
 	
 	
     // USAGE_PAGE (Generic Desktop)
@@ -404,7 +414,29 @@ void BleGamepad::begin(uint16_t buttonCount, uint8_t hatSwitchCount,
 		// END_COLLECTION (Physical)
 		tempHidReportDescriptor[hidReportDescriptorSize++] = 0xc0;
 	}
+
+	if (includeGyro) {
 	
+		// USAGE_PAGE (Sensor)
+		tempHidReportDescriptor[hidReportDescriptorSize++] = 0x05;
+		tempHidReportDescriptor[hidReportDescriptorSize++] = 0x20;
+
+		// COLLECTION (Physical)
+		tempHidReportDescriptor[hidReportDescriptorSize++] = 0xA1;
+		tempHidReportDescriptor[hidReportDescriptorSize++] = 0x00;
+
+		// USAGE (Gyro 3d)
+		tempHidReportDescriptor[hidReportDescriptorSize++] = 0x09;
+		tempHidReportDescriptor[hidReportDescriptorSize++] = 0x76;
+                
+		// USAGE (Accel 3d)
+		tempHidReportDescriptor[hidReportDescriptorSize++] = 0x09;
+		tempHidReportDescriptor[hidReportDescriptorSize++] = 0x73;
+
+		// END_COLLECTION (Physical)
+		tempHidReportDescriptor[hidReportDescriptorSize++] = 0xc0;
+        }
+		
 	// END_COLLECTION (Application)
     tempHidReportDescriptor[hidReportDescriptorSize++] = 0xc0;
 	
@@ -413,6 +445,16 @@ void BleGamepad::begin(uint16_t buttonCount, uint8_t hatSwitchCount,
 
 void BleGamepad::end(void)
 {
+}
+
+void BleGamepad::setGyro(int16_t gx, int16_t gy, int16_t gz, int16_t ax, int16_t ay, int16_t az)
+{
+    _gX = gx;
+    _gY = gy;
+    _gZ = gz;
+    _aX = ax;
+    _aY = ay;
+    _aZ = az;
 }
 
 void BleGamepad::setAxes(int16_t x, int16_t y, int16_t z, int16_t rZ, int16_t rX, int16_t rY, signed char hat1, signed char hat2, signed char hat3, signed char hat4)
@@ -511,6 +553,15 @@ void BleGamepad::sendReport(void)
 				m[currentReportIndex++] = hats[currentHatIndex];
 			}
 		}
+
+                if (_includeGyro) {
+                    m[currentReportIndex++] = _gX;	m[currentReportIndex++] = (_gX >> 8);
+                    m[currentReportIndex++] = _gY;	m[currentReportIndex++] = (_gY >> 8);
+                    m[currentReportIndex++] = _gZ;	m[currentReportIndex++] = (_gZ >> 8);
+                    m[currentReportIndex++] = _aX; 	m[currentReportIndex++] = (_aX >> 8);
+                    m[currentReportIndex++] = _aY; 	m[currentReportIndex++] = (_aY >> 8);
+                    m[currentReportIndex++] = _aZ; 	m[currentReportIndex++] = (_aZ >> 8);
+                }
 		
 		this->inputGamepad->setValue(m, sizeof(m));
 		this->inputGamepad->notify();

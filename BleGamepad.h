@@ -214,6 +214,13 @@ private:
   bool _includeAccelerator;
   bool _includeBrake;
   bool _includeSteering;
+  bool _includeGyro;
+  int16_t _gZ;
+  int16_t _gX;
+  int16_t _gY;
+  int16_t _aZ;
+  int16_t _aX;
+  int16_t _aY;
   
   BleConnectionStatus* connectionStatus;
 
@@ -225,7 +232,12 @@ private:
 
 public:
   BleGamepad(std::string deviceName = "ESP32 BLE Gamepad", std::string deviceManufacturer = "Espressif", uint8_t batteryLevel = 100);
-  void begin(uint16_t buttonCount = 16, uint8_t hatSwitchCount = 1, bool includeXAxis = true, bool includeYAxis = true, bool includeZAxis = true, bool includeRzAxis = true, bool includeRxAxis = true, bool includeRyAxis = true, uint8_t sliderCount = 0, bool includeRudder = false, bool includeThrottle = false, bool includeAccelerator = false, bool includeBrake = false, bool includeSteering = false);
+  void begin(uint16_t buttonCount = 16, uint8_t hatSwitchCount = 1, 
+          bool includeXAxis = true, bool includeYAxis = true, bool includeZAxis = true, 
+          bool includeRzAxis = true, bool includeRxAxis = true, bool includeRyAxis = true,
+          uint8_t sliderCount = 0,
+          bool includeGyro = false,
+          bool includeRudder = false, bool includeThrottle = false, bool includeAccelerator = false, bool includeBrake = false, bool includeSteering = false);
   void end(void);
   void setControllerType(uint8_t controllerType = CONTROLLER_TYPE_GAMEPAD);
   void setAxes(int16_t x = 0, int16_t y = 0, int16_t z = 0, int16_t rZ = 0, int16_t rX = 0, int16_t rY = 0, signed char hat1 = 0, signed char hat2 = 0, signed char hat3 = 0, signed char hat4 = 0);
@@ -262,6 +274,7 @@ public:
   void resetButtons();
   void setBatteryLevel(uint8_t level);
   uint8_t batteryLevel;
+  void setGyro(int16_t gx, int16_t gy, int16_t gz, int16_t aX, int16_t aY, int16_t aZ);
   std::string deviceManufacturer;
   std::string deviceName;
 protected:
